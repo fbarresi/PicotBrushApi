@@ -2,7 +2,7 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: Build and deploy Python app to Azure Web App - picotbrush
+name: Azure Web App - picotbrush
 
 on:
   push:
@@ -79,3 +79,4 @@ jobs:
           slot-name: 'Production'
 
           
+
