@@ -12,12 +12,12 @@ Like Waveshare E-Ink-Color-Display, 7.3 inch, 800x480, Spectra 6:
 
 The simplest way to use it is over the web - visit [picotbrush](https://picotbrush.azurewebsites.net/) and give it a try!
 
-Just upload your picture, press `paint` for a preview or `convert` to download the picture in binary format.<br>
+Just upload your picture, press `paint` for a preview or `convert` to download the picture in binary format. <br> The binary format is the buffer you can directly transmit to the display over the SPI interface.<br>
 You may include a rotation if you need it.
 
 <img width="546" height="547" alt="image" src="https://github.com/user-attachments/assets/c3ff2ef1-df95-4414-83a2-950b6ffa8ede" />
 
-This will transform your picture from:
+This will transform your picture from this:
 
 
 <img width="400" height="241" alt="image" src="https://github.com/user-attachments/assets/4c170257-abfb-4453-bd0f-45d002e9c1db" />
@@ -26,6 +26,7 @@ into this:
 
 <img width="400" height="241" alt="image" src="https://github.com/user-attachments/assets/11a71174-a3b6-4731-90d0-339a9ba87c3f" />
 
+with fixed format 800x480.
 
 ## Contribute?
 
