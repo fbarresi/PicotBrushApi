@@ -4,7 +4,7 @@ from flask import (Flask, redirect, render_template, request,
                    send_from_directory, send_file, url_for, make_response)
 
 import PIL
-from PIL import Image
+from PIL import Image, ImageOps
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
@@ -18,18 +18,26 @@ def convert_picture(rawBytes, rotation):
 
    image = Image.open(rawBytes)
 
-   # Resize and check if we need to rotate the image
    size = (width, height)
-
+   
+   # Resize and check if we need to rotate the image
    if rotation > 0:
       image_temp = image.rotate(rotation, expand=True)
    else:
       image_temp = image
 
-   image_temp = image_temp.resize(size)
+   # resize and keep the ratio
+   image_temp = ImageOps.contain(image_temp, size)
+   #print(image_temp.size)
+   
+   # fill the new picture into a box to ensure final size
+   x, y = image_temp.size
+   box = Image.new('RGBA', (width, height), (255, 255, 255, 1))
+   box.paste(image_temp, (int((width - x) / 2), int((height - y) / 2)))
+
 
    # Convert the soruce image to the 7 colors, dithering if needed
-   image_7color = image_temp.convert("RGB").quantize(palette=pal_image) 
+   image_7color = box.convert("RGB").quantize(palette=pal_image) 
 
    return image_7color
 
