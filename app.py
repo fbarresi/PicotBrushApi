@@ -1,8 +1,8 @@
-import os, io
+import io
 
 from flask import (Flask, redirect, render_template, request,
                    send_from_directory, send_file, url_for, make_response)
-
+from flask_cors import CORS
 import PIL
 from PIL import Image, ImageOps
 
@@ -48,6 +48,7 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/')
 def index():
@@ -86,7 +87,11 @@ def convert():
 
 @app.route('/paint', methods=['POST'])
 def paint():
-   rot_nr = int(request.form.get('rotation'))
+   rot_nr = 0
+   try:
+      rot_nr = int(request.form.get('rotation'))
+   except:
+      pass
 
    if 'file' not in request.files:
       print('No file part')
