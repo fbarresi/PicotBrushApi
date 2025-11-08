@@ -57,7 +57,12 @@ def index():
 
 @app.route('/convert', methods=['POST'])
 def convert():
-   rot_nr = int(request.form.get('rotation'))
+   rot_nr = 0
+   try:
+      rot_nr = int(request.form.get('rotation'))
+   except:
+      pass
+   
    if 'file' not in request.files:
       print('No file part')
       redirect(url_for('index'))
