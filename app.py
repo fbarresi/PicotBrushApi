@@ -8,10 +8,19 @@ from PIL import Image, ImageOps
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
-width = 800
-height = 480
+default_width = 800
+default_height = 480
 
-def convert_picture(rawBytes, rotation):
+
+def convert_picture(rawBytes, **kwargs):
+
+   print("converting picture with following arguments:", kwargs)
+
+   width = kwargs.get('width', default_width)
+   height = kwargs.get('height', default_height)
+   rotation = kwargs.get('rotation', 0)
+   preserveRatio = kwargs.get('preserveAspectRatio') is not None
+
    # Create a pallette with the 7 colors supported by the panel
    pal_image = Image.new("P", (1,1))
    pal_image.putpalette( (0,0,0,  255,255,255,  255,255,0,  255,0,0,  0,0,0,  0,0,255,  0,255,0) + (0,0,0)*249)
@@ -26,15 +35,17 @@ def convert_picture(rawBytes, rotation):
    else:
       image_temp = image
 
-   # resize and keep the ratio
-   image_temp = ImageOps.contain(image_temp, size)
-   #print(image_temp.size)
-   
-   # fill the new picture into a box to ensure final size
-   x, y = image_temp.size
-   box = Image.new('RGBA', (width, height), (255, 255, 255, 1))
-   box.paste(image_temp, (int((width - x) / 2), int((height - y) / 2)))
-
+   if preserveRatio :
+      # resize and keep the ratio
+      image_temp = ImageOps.contain(image_temp, size)
+      #print(image_temp.size)
+      
+      # fill the new picture into a box to ensure final size
+      x, y = image_temp.size
+      box = Image.new('RGB', (width, height), (255, 255, 255, 1))
+      box.paste(image_temp, (int((width - x) / 2), int((height - y) / 2)))
+   else :
+      box = image_temp.resize(size)
 
    # Convert the soruce image to the 7 colors, dithering if needed
    image_7color = box.convert("RGB").quantize(palette=pal_image) 
@@ -52,27 +63,28 @@ CORS(app)
 
 @app.route('/')
 def index():
-   print('Request for index page received')
+   #print('Request for index page received')
    return render_template('index.html')
 
 @app.route('/convert', methods=['POST'])
 def convert():
-   rot_nr = 0
-   try:
-      rot_nr = int(request.form.get('rotation'))
-   except:
-      pass
-   
    if 'file' not in request.files:
       print('No file part')
       redirect(url_for('index'))
 
+   form_args = request.form.to_dict()
+   for key in form_args:
+      try:
+         form_args[key] = int(form_args[key])
+      except:
+         pass
+   
    file = request.files['file']
 
    if file and allowed_file(file.filename):
 
       rawBytes = io.BytesIO(file.read())
-      image_7color = convert_picture(rawBytes, 90*rot_nr)
+      image_7color = convert_picture(rawBytes, **form_args)
       buf_7color = bytearray(image_7color.tobytes('raw'))
 
       # PIL does not support 4 bit color, so pack the 4 bits of color
@@ -92,22 +104,24 @@ def convert():
 
 @app.route('/paint', methods=['POST'])
 def paint():
-   rot_nr = 0
-   try:
-      rot_nr = int(request.form.get('rotation'))
-   except:
-      pass
 
    if 'file' not in request.files:
       print('No file part')
       redirect(url_for('index'))
+
+   form_args = request.form.to_dict()
+   for key in form_args:
+      try:
+         form_args[key] = int(form_args[key])
+      except:
+         pass
 
    file = request.files['file']
 
    if file and allowed_file(file.filename):
 
       rawBytes = io.BytesIO(file.read())
-      image_7color = convert_picture(rawBytes, 90*rot_nr)
+      image_7color = convert_picture(rawBytes, **form_args)
 
       img_io = io.BytesIO()
       image_7color.convert('RGB').save(img_io, 'JPEG', quality=70)
