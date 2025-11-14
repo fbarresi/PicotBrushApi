@@ -21,6 +21,17 @@ def convert_picture(rawBytes, **kwargs):
    rotation = kwargs.get('rotation', 0)
    preserveRatio = kwargs.get('preserveAspectRatio') is not None
 
+   try:
+      if(width <= 0):
+         width = 1
+   except:
+      width = default_width
+   try:
+      if(height <= 0):
+         height = 1
+   except:
+      height = default_height
+
    # Create a pallette with the 7 colors supported by the panel
    pal_image = Image.new("P", (1,1))
    pal_image.putpalette( (0,0,0,  255,255,255,  255,255,0,  255,0,0,  0,0,0,  0,0,255,  0,255,0) + (0,0,0)*249)
