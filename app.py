@@ -98,6 +98,9 @@ def convert():
       image_7color = convert_picture(rawBytes, **form_args)
       buf_7color = bytearray(image_7color.tobytes('raw'))
 
+      width = form_args.get('width', default_width)
+      height = form_args.get('height', default_height)
+
       # PIL does not support 4 bit color, so pack the 4 bits of color
       # into a single byte to transfer to the panel
       buf = [0x00] * int(width * height / 2)
