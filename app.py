@@ -1,8 +1,10 @@
 import io
+from pathlib import Path
 
-from flask import (Flask, redirect, render_template, request,
-                   send_from_directory, send_file, url_for, make_response)
-from flask_cors import CORS
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
 import PIL
 from PIL import Image, ImageOps
 
@@ -69,32 +71,45 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-app = Flask(__name__)
-CORS(app)
+BASE_DIR = Path(__file__).resolve().parent
 
-@app.route('/')
-def index():
-   #print('Request for index page received')
-   return render_template('index.html')
+app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=["*"],
+                   allow_methods=["*"], allow_headers=["*"])
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
-@app.route('/convert', methods=['POST'])
-def convert():
-   if 'file' not in request.files:
-      print('No file part')
-      redirect(url_for('index'))
 
-   form_args = request.form.to_dict()
-   for key in form_args:
+async def read_form(request: Request):
+   form = await request.form()
+   form_args = {}
+   file = None
+   for key, value in form.items():
+      if key == 'file':
+         file = value
+         continue
       try:
-         form_args[key] = int(form_args[key])
-      except:
-         pass
-   
-   file = request.files['file']
+         form_args[key] = int(value)
+      except (TypeError, ValueError):
+         form_args[key] = value
+   return file, form_args
 
-   if file and allowed_file(file.filename):
 
-      rawBytes = io.BytesIO(file.read())
+def redirect_to_index():
+   # 303 so the browser follows with GET after a POST
+   return RedirectResponse('/', status_code=303)
+
+
+@app.get('/', include_in_schema=False)
+def index():
+   return FileResponse(BASE_DIR / 'templates' / 'index.html')
+
+@app.post('/convert')
+async def convert(request: Request):
+   file, form_args = await read_form(request)
+
+   if file is not None and hasattr(file, 'read') and allowed_file(file.filename):
+
+      rawBytes = io.BytesIO(await file.read())
       image_7color = convert_picture(rawBytes, **form_args)
       buf_7color = bytearray(image_7color.tobytes('raw'))
 
@@ -109,43 +124,31 @@ def convert():
          buf[idx] = (buf_7color[i] << 4) + buf_7color[i+1]
          idx += 1
 
-      buffer = io.BytesIO(bytes(buf))
-      
-      return send_file(buffer, download_name=file.filename+'.bin', mimetype='application/octet-stream')
-   
+      filename = file.filename.replace('"', '')
+      return Response(bytes(buf), media_type='application/octet-stream',
+                      headers={'Content-Disposition': f'attachment; filename="{filename}.bin"'})
+
    else:
-      return redirect(url_for('index'))
+      return redirect_to_index()
 
-@app.route('/paint', methods=['POST'])
-def paint():
+@app.post('/paint')
+async def paint(request: Request):
+   file, form_args = await read_form(request)
 
-   if 'file' not in request.files:
-      print('No file part')
-      redirect(url_for('index'))
+   if file is not None and hasattr(file, 'read') and allowed_file(file.filename):
 
-   form_args = request.form.to_dict()
-   for key in form_args:
-      try:
-         form_args[key] = int(form_args[key])
-      except:
-         pass
-
-   file = request.files['file']
-
-   if file and allowed_file(file.filename):
-
-      rawBytes = io.BytesIO(file.read())
+      rawBytes = io.BytesIO(await file.read())
       image_7color = convert_picture(rawBytes, **form_args)
 
       img_io = io.BytesIO()
       image_7color.convert('RGB').save(img_io, 'JPEG', quality=70)
-      img_io.seek(0)
 
-      return send_file(img_io, mimetype='image/jpeg')
-   
+      return Response(img_io.getvalue(), media_type='image/jpeg')
+
    else:
-      return redirect(url_for('index'))
+      return redirect_to_index()
 
 
 if __name__ == '__main__':
-   app.run()
+   import uvicorn
+   uvicorn.run(app, host='127.0.0.1', port=5000)

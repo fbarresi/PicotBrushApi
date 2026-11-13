@@ -42,7 +42,7 @@ I would be happy to receive donations, this will help to cover hosting costs.
 - install a python virtual environment `python3 -m venv .venv`
 - activate it with `.venv\Scripts\activate`
 - install all requirements with `pip install -r .\requirements.txt`
-- start the application with `flask run`
+- start the application with `uvicorn app:app --port 5000`
 - visit [http://127.0.0.1:5000](http://127.0.0.1:5000) and have fun!
 
 ## Credits
